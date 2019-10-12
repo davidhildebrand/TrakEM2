@@ -29,6 +29,7 @@ public class ExportBestFlatImage
 	public final double scale;
 	public final double largest_possibly_needed_area;
 	public final double max_possible_area;
+	public final double max_patch_area;
 	public final double scaleUP;
 
 	protected final Loader loader;
@@ -66,17 +67,20 @@ public class ExportBestFlatImage
 
 		this.loader = patches.get(0).getProject().getLoader();
 
-		final double maxPatchArea = patches.stream()
-				.map(p -> p.getBoundingBox().width * p.getBoundingBox().height * scale * scale * 4)
+		this.max_patch_area = patches.stream()
+				.map(p -> p.getBoundingBox().width * p.getBoundingBox().height * 4)
 				.reduce((a, b) -> Math.max(a, b))
 				.get();
+	System.out.println("max patch area: " + max_patch_area);
 
     	// Determine the scale corresponding to the calculated max_area,
     	// with a correction factor to make sure width * height never go above pow(2, 31)
     	// (Only makes sense, and will only be used, if area is smaller than max_area.)
-		this.largest_possibly_needed_area = Math.max(maxPatchArea, ((double)finalBox.width) * ((double)finalBox.height) * scale * scale * 4);
+		this.largest_possibly_needed_area = ((double)finalBox.width) * ((double)finalBox.height) * scale * scale * 4;
     	this.max_possible_area = Math.min( this.largest_possibly_needed_area, Math.pow(2, 31) );
     	this.scaleUP = Math.min(1.0, Math.sqrt( this.max_possible_area / this.largest_possibly_needed_area ) ) - Math.max( 1.0 / finalBox.width, 1.0 / finalBox.height );
+	
+	System.out.println("max possible area: " + max_possible_area);
     }
 
 	/**
@@ -84,7 +88,8 @@ public class ExportBestFlatImage
 	 * so that with the quality flag, the interim image is smaller than 2 GB (2x larger on the side).
 	 */
 	public boolean canUseAWTImage() {
-		return (((long)finalBox.width) * ((long)finalBox.height)) * scale * scale * 4 < Math.pow( 2, 29 ) && loader.isMipMapsRegenerationEnabled(); // smaller than 0.5 GB: so up to 2 GB with quality flag on
+//		return ((Math.max(max_patch_area, ((long)finalBox.width) * ((long)finalBox.height)) * scale * scale * 4) < Math.pow( 2, 29)) && loader.isMipMapsRegenerationEnabled(); // smaller than 0.5 GB: so up to 2 GB with quality flag on
+		return false;
 	}
 
 	/**
@@ -234,14 +239,14 @@ public class ExportBestFlatImage
 			Utils.log("Cannot create an image larger than 2 GB.");
 			return null;
 		}
-
+/*
 		if ( loader.isMipMapsRegenerationEnabled() )
 		{
 			// Use mipmaps directly: they are already Gaussian-downsampled
 			// (TODO waste: generates an alpha mask that is then not used)
 			return ExportUnsignedByte.makeFlatImageFromMipMaps( patches, finalBox, 0, scale ).a;
 		}
-
+*/
 		// Else: no mipmaps
 		return ExportUnsignedByte.makeFlatImageFromOriginals( patches, finalBox, 0, scale ).a;
 	}
@@ -282,13 +287,13 @@ public class ExportBestFlatImage
 			Utils.log("Cannot create an image larger than 2 GB.");
 			return null;
 		}
-
+/*
 		if ( loader.isMipMapsRegenerationEnabled() )
 		{
 			// Use mipmaps directly: they are already Gaussian-downsampled
 			return ExportUnsignedByte.makeFlatImageFromMipMaps( patches, finalBox, 0, scale );
 		}
-
+*/
 		// Else: no mipmaps
 		return ExportUnsignedByte.makeFlatImageFromOriginals( patches, finalBox, 0, scale );
 	}
@@ -329,9 +334,9 @@ public class ExportBestFlatImage
 			Utils.log("Cannot create an image larger than 2 GB.");
 			return null;
 		}
-
-		if ( loader.isMipMapsRegenerationEnabled() )
-		{
+		
+//		if ( loader.isMipMapsRegenerationEnabled() )
+//		{
 			// Use mipmaps directly: they are already Gaussian-downsampled
 			/*
 			 * TODO The above comment is not true, Mipmaps are typically not
@@ -341,11 +346,11 @@ public class ExportBestFlatImage
 			 * downsampling mode and it is now uinclear if this correct
 			 * behavior has survived these changes.
 			 */
-			final Pair<ByteProcessor, ByteProcessor> pair = ExportUnsignedByte.makeFlatImageFromMipMaps( patches, finalBox, 0, scale );
-			return new Pair<FloatProcessor, FloatProcessor>(
-					pair.a.convertToFloatProcessor(),
-					pair.b.convertToFloatProcessor() );
-		}
+//			final Pair<ByteProcessor, ByteProcessor> pair = ExportUnsignedByte.makeFlatImageFromMipMaps( patches, finalBox, 0, scale );
+//			return new Pair<FloatProcessor, FloatProcessor>(
+//					pair.a.convertToFloatProcessor(),
+//					pair.b.convertToFloatProcessor() );
+//		}
 
 		// Else: no mipmaps
 
